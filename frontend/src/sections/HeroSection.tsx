@@ -1,12 +1,14 @@
-'use client'
 import { CheckIcon, ChevronRightIcon, VideoIcon } from "lucide-react";
 import TiltedImage from "../components/TiltImage";
+import RotatingText from "../components/RotatingText";
 import { motion } from "motion/react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function HeroSection() {
 
     const navigate = useNavigate();
+    const { isLoggedIn } = useAuth();
 
     const specialFeatures = [
         "No Design Skills Required",
@@ -15,29 +17,38 @@ export default function HeroSection() {
     ];
 
     return (
-        <div className="relative flex flex-col items-center justify-center px-4 md:px-16 lg:px-24 xl:px-32">
-            <div className="absolute top-30 -z-10 left-1/4 size-72 bg-pink-600 blur-[300px]"></div>
-            <motion.a href="https://prebuiltui.com?utm_source=pixels" className="group flex items-center gap-2 rounded-full p-1 pr-3 mt-44 text-pink-100 bg-pink-200/15"
+        <div className="relative top-48 flex flex-col items-center justify-center px-4 md:px-16 lg:px-24 xl:px-32">
+            <div className="absolute top-30 -z-10 left-1/4 size-72 blur-[300px]" style={{backgroundColor: '#e947f5', opacity: 0.3}}></div>
+            <motion.div
                 initial={{ y: -20, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.2, type: "spring", stiffness: 320, damping: 70, mass: 1 }}
             >
-                <span className="bg-pink-800 text-white text-xs px-3.5 py-1 rounded-full">
+                <Link to={isLoggedIn ? "/generate" : "/login"} className="group flex items-center gap-2 rounded-full p-1 pr-3" style={{color: '#e947f5', backgroundColor: 'rgba(233, 71, 245, 0.1)'}}>
+                <span className="text-white text-xs px-3.5 py-1 rounded-full" style={{backgroundColor: '#e947f5'}}>
                     NEW
                 </span>
-                <p className="flex items-center gap-1">
+                <p className="flex items-center gap-1 text-white">
                     <span>Generate your first thumbnail for free! </span>
                     <ChevronRightIcon size={16} className="group-hover:translate-x-0.5 transition duration-300" />
                 </p>
-            </motion.a>
+                </Link>
+            </motion.div>
             <motion.h1 className="text-5xl/17 md:text-6xl/21 font-medium max-w-3xl text-center"
                 initial={{ y: 50, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ type: "spring", stiffness: 240, damping: 70, mass: 1 }}
             >
-                AI Thumbnail Generator for your <span className="move-gradient px-3 rounded-xl text-nowrap">Videos.</span>
+                AI Thumbnail Generator for your <span className="text-nowrap border-b-2 border-indigo-500 pb-1">
+                  <RotatingText 
+                    texts={["Reels.", "Videos."]} 
+                    rotationInterval={3000}
+                    staggerDuration={0.05}
+                    mainClassName="inline-block"
+                  />
+                </span>
             </motion.h1>
             <motion.p className="text-base text-center text-slate-200 max-w-lg mt-6"
                 initial={{ y: 50, opacity: 0 }}
@@ -52,10 +63,10 @@ export default function HeroSection() {
                 viewport={{ once: true }}
                 transition={{ type: "spring", stiffness: 320, damping: 70, mass: 1 }}
             >
-                <button onClick={() => navigate('/generate')} className="bg-pink-600 hover:bg-pink-700 text-white rounded-full px-7 h-11">
+                <button onClick={() => navigate('/generate')} className="text-white rounded-full px-7 h-11 transition-all" style={{backgroundColor: '#e947f5'}} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d926e8'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e947f5'}>
                     Generate Now
                 </button>
-                <button className="flex items-center gap-2 border border-pink-900 hover:bg-pink-950/50 transition rounded-full px-6 h-11">
+                <button className="flex items-center gap-2 transition rounded-full px-6 h-11" style={{borderColor: '#e947f5', borderWidth: '1px'}} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(233, 71, 245, 0.1)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                     <VideoIcon strokeWidth={1} />
                     <span>See how it works</span>
                 </button>
@@ -63,14 +74,14 @@ export default function HeroSection() {
 
             <div className="flex flex-wrap justify-center items-center gap-4 md:gap-14 mt-12">
                 {specialFeatures.map((feature, index) => (
-                    <motion.p className="flex items-center gap-2" key={index}
+                    <motion.p className="flex items-center gap-2 " key={index}
                         initial={{ y: 30, opacity: 0 }}
                         whileInView={{ y: 0, opacity: 1 }}
                         viewport={{ once: true }}
                         transition={{ delay: index * 0.2, duration: 0.3 }}
                     >
-                        <CheckIcon className="size-5 text-pink-600" />
-                        <span className="text-slate-400">{feature}</span>
+                        <CheckIcon className="size-5" style={{color: '#e947f5'}} />
+                        <span className="text-white/80">{feature}</span>
                     </motion.p>
                 ))}
             </div>

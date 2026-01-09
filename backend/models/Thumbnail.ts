@@ -1,5 +1,4 @@
-import mongoose from "mongoose";
-import { ref } from "process";
+import mongoose, { Document } from "mongoose";
 
 export interface IThumbnail extends Document {
   userId: string;
@@ -71,8 +70,6 @@ const ThumbnailSchema = new mongoose.Schema<IThumbnail>({
   updatedAt: { type: Date, default: Date.now },
 });
 
-const Thumbnail =
-  mongoose.models.Thumbnail ||
-  mongoose.model<IThumbnail>("Thumbnail", ThumbnailSchema);
+const Thumbnail = (mongoose.models.Thumbnail as mongoose.Model<IThumbnail>) || mongoose.model<IThumbnail>("Thumbnail", ThumbnailSchema);
 
 export default Thumbnail;

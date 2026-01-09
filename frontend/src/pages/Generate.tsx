@@ -22,11 +22,12 @@ const Generate = () => {
   const { id } = useParams();
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   const [title, setTitle] = useState("");
   const [additionalDetails, setAdditionalDetails] = useState("");
   const [thumbnail, setThumbnail] = useState<IThumbnail | null>(null);
   const [loading, setLoading] = useState(false);
+  const [thumbnailUsage, setThumbnailUsage] = useState<{ remaining: number; limit: number; used: number } | null>(null);
 
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("16:9");
   const [colorSchemeId, setColorSchemeId] = useState<string>(
@@ -52,10 +53,28 @@ const Generate = () => {
       color_scheme: colorSchemeId,
       text_overlay: true,
     };
-    const { data } = await api.post("/api/thumbnail/generate", api_payload);
-    if (data.thumbnail) {
-      navigate(`/generate/${data.thumbnail._id}`);
-      toast.success(data.message);
+    try {
+      const { data } = await api.post("/api/thumbnail/generate", api_payload);
+      if (data.thumbnail) {
+        navigate(`/generate/${data.thumbnail._id}`);
+        toast.success(data.message);
+        // Refresh usage after generation to show updated credits
+        await fetchThumbnailUsage();
+      }
+    } catch (error: any) {
+      console.error("Error generating thumbnail:", error);
+      toast.error(error.response?.data?.message || "Failed to generate thumbnail");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchThumbnailUsage = async () => {
+    try {
+      const { data } = await api.get("/api/thumbnail/usage/credits");
+      setThumbnailUsage(data.usage);
+    } catch (error: any) {
+      console.log("Error fetching thumbnail usage:", error);
     }
   };
 
@@ -71,9 +90,20 @@ const Generate = () => {
       setStyle(data?.thumbnail?.style);
     } catch (error: any) {
       console.log(error);
-      toast.error(error?.response?.data?.message || error.message);
+      toast.error("An error occurred");
     }
   };
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchThumbnailUsage();
+      // Refetch usage every 30 seconds to catch plan changes
+      const interval = setInterval(() => {
+        fetchThumbnailUsage();
+      }, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isLoggedIn]);
 
   useEffect(() => {
     if (isLoggedIn && id) {
@@ -96,95 +126,145 @@ const Generate = () => {
   return (
     <>
       <SoftBackdrop />
-      <div className="pt-24 min-h-screen">
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-28 lg:pb-8">
-          <div className="grid lg:grid-cols-[400px_1fr] gap-8">
-            {/* Left */}
-            <div className={`space-y-6 ${id && "pointer-events-none"}`}>
-              <div className="p-6 rounded-2xl bg-white/8 border border-white/12 shadow-xl space-y-6">
-                <div className="">
-                  <h2 className="text-2xl font-bold">Create Your Thumbnail</h2>
-                  <p className="text-gray-500">
-                    Describe your vision and let AI bring it to life.
-                  </p>
-                </div>
+      <div className="relative min-h-screen pt-24 pb-20">
+        {/* Gradient background elements */}
+        <div className="fixed inset-0 -z-10 pointer-events-none">
+          <div className="absolute top-20 right-1/4 w-96 h-96 rounded-full blur-3xl" style={{backgroundColor: 'rgba(233, 71, 245, 0.15)'}}></div>
+          <div className="absolute bottom-1/3 left-1/4 w-80 h-80 rounded-full blur-3xl" style={{backgroundColor: 'rgba(47, 75, 162, 0.15)'}}></div>
+        </div>
 
-                <div className="space-y-5">
-                  {/* Title input */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="">
-                      Title or Topic
-                    </label>
-                    <input
-                      type="text"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      maxLength={100}
-                      placeholder="e.g. 'Astronaut floating in space'"
-                      className="w-full mt-2 px-4 py-3 rounded-lg border border-white/12 bg-black/20 text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                    />
-                    <div className="flex justify-end">
-                      <span className="text-xs text-zinc-400">
-                        {title.length}/100
-                      </span>
-                    </div>
-                  </div>
-                  {/* Aspect Ratio Selector */}
-                  <AspectRatioSelector
-                    value={aspectRatio}
-                    onChange={setAspectRatio}
-                  />
-                  {/* style selector */}
-                  <StyleSelector
-                    value={style}
-                    onChange={setStyle}
-                    isOpen={styleDropdownOpen}
-                    setIsOpen={setStyleDropdownOpen}
-                  />
-                  {/* color scheme selector */}
-                  <ColorSchemeSelector
-                    value={colorSchemeId}
-                    onChange={setColorSchemeId}
-                  />
-                  {/* additional details */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium">
-                      Additional Prompts{" "}
-                      <span className="text-zinc-400 text-xs">(optional)</span>
-                    </label>
-                    <textarea
-                      value={additionalDetails}
-                      onChange={(e) => setAdditionalDetails(e.target.value)}
-                      rows={3}
-                      placeholder="Add any specific elements, mood, or style preferences..."
-                      className="w-full px-4 py-3 rounded-lg border border-white/10 bg-white/6 text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
-                    />
-                  </div>
-                </div>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="mb-12 text-center">
+            <h1 className="text-5xl md:text-6xl font-bold mb-4">
+              <span className="text-white">Create Your </span>
+              <span style={{color: '#e947f5'}}>Perfect Thumbnail</span>
+            </h1>
+            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+              Describe your vision and let AI bring it to life. Customize every detail to match your brand.
+            </p>
+          </div>
 
-                {/* Button */}
-                {!id && (
-                  <button
-                    onClick={handleGenerate}
-                    className="text-[15px] w-full py-3.5 rounded-xl font-medium bg-linear-to-b from-pink-500 to-pink-600 hover:from-pink-700 transition-colors disabled:cursor-not-allowed disabled:bg-gray-200"
-                  >
-                    {loading ? "Generating..." : "Generate Thumbnail"}
-                  </button>
-                )}
+          <div className="grid lg:grid-cols-[1fr_450px] gap-8 items-start">
+            {/* Left - Preview */}
+            <div className="order-2 lg:order-1">
+              <div className="rounded-3xl overflow-hidden border" style={{borderColor: 'rgba(233, 71, 245, 0.3)', backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(10px)'}}>
+                <div className="p-8">
+                  <h2 className="text-lg font-semibold text-white mb-6">Live Preview</h2>
+                  <PreviePanel
+                    thumbnail={thumbnail}
+                    isLoading={loading}
+                    aspectRatio={aspectRatio}
+                  />
+                </div>
               </div>
-
-              <div></div>
+              {thumbnailUsage && (
+                <div className="mt-4 space-y-2">
+                  <div className="text-sm text-slate-400 text-right">
+                    Credits used: {thumbnailUsage.used}/{thumbnailUsage.limit}
+                  </div>
+                  <div className="text-sm text-slate-400 text-right">
+                    Remaining: {thumbnailUsage.remaining}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Right */}
-            <div>
-              <div className="p-6 rounded-2xl bg-white/8 border border-white/10 shadow-xl">
-                <h2 className="text-lg font-semibold text-zinc-100">Preview</h2>
-                <PreviePanel
-                  thumbnail={thumbnail}
-                  isLoading={loading}
-                  aspectRatio={aspectRatio}
-                />
+            {/* Right - Controls */}
+            <div className="order-1 lg:order-2">
+              <div className="rounded-3xl overflow-hidden border sticky top-32" style={{borderColor: 'rgba(233, 71, 245, 0.3)', backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(10px)'}}>
+                <div className="p-8 space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Create Thumbnail</h2>
+                    <p className="text-slate-400 text-sm mt-1">
+                      Configure your design preferences
+                    </p>
+                  </div>
+
+                  <div className="space-y-5">
+                    {/* Title input */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-white block">
+                        Title or Topic
+                      </label>
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        maxLength={100}
+                        placeholder="e.g. 'Astronaut floating in space'"
+                        className="w-full px-4 py-3 rounded-xl border text-white placeholder:text-slate-500 focus:outline-none transition-all"
+                        style={{borderColor: 'rgba(233, 71, 245, 0.3)', backgroundColor: 'rgba(233, 71, 245, 0.05)'}}
+                        onFocus={(e) => e.currentTarget.style.borderColor = '#e947f5'}
+                        onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(233, 71, 245, 0.3)'}
+                      />
+                      <div className="flex justify-end">
+                        <span className="text-xs text-slate-500">
+                          {title.length}/100
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Aspect Ratio Selector */}
+                    <AspectRatioSelector
+                      value={aspectRatio}
+                      onChange={setAspectRatio}
+                    />
+
+                    {/* Style selector */}
+                    <StyleSelector
+                      value={style}
+                      onChange={setStyle}
+                      isOpen={styleDropdownOpen}
+                      setIsOpen={setStyleDropdownOpen}
+                    />
+
+                    {/* Color scheme selector */}
+                    <ColorSchemeSelector
+                      value={colorSchemeId}
+                      onChange={setColorSchemeId}
+                    />
+
+                    {/* Additional details */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-white">
+                        Additional Prompts{" "}
+                        <span className="text-slate-500 text-xs font-normal">(optional)</span>
+                      </label>
+                      <textarea
+                        value={additionalDetails}
+                        onChange={(e) => setAdditionalDetails(e.target.value)}
+                        rows={3}
+                        placeholder="Add any specific elements, mood, or style preferences..."
+                        className="w-full px-4 py-3 rounded-xl border text-white placeholder:text-slate-500 focus:outline-none transition-all resize-none"
+                        style={{borderColor: 'rgba(233, 71, 245, 0.3)', backgroundColor: 'rgba(233, 71, 245, 0.05)'}}
+                        onFocus={(e) => e.currentTarget.style.borderColor = '#e947f5'}
+                        onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(233, 71, 245, 0.3)'}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Button */}
+                  {!id && (
+                    <button
+                      onClick={handleGenerate}
+                      disabled={loading}
+                      className="w-full py-4 rounded-xl font-semibold text-white transition-all duration-300 text-base"
+                      style={{backgroundColor: '#e947f5'}}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                    >
+                      {loading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                          Generating...
+                        </span>
+                      ) : (
+                        "Generate Thumbnail"
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

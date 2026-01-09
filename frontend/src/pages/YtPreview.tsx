@@ -42,7 +42,7 @@ const YtPreview = () => {
   }, [thumbnail_url, title])
   
   return (
-    <div className="fixed inset-0 z-100 bg-black">
+    <div className="fixed inset-0 z-50 bg-black">
       <iframe ref={iframeRef} width="100%" height="100%" allowFullScreen ></iframe>
     </div>
   )

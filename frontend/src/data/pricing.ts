@@ -2,13 +2,25 @@ import type { IPricing } from "../types";
 
 export const pricingData: IPricing[] = [
     {
+        name: "Free",
+        price: 0,
+        period: "forever",
+        features: [
+            "3 AI thumbnails total",
+            "Basic Templates",
+            "Standard Resolution",
+            "Community Support"
+        ],
+        mostPopular: false
+    },
+    {
         name: "Basic",
         price: 29,
         period: "month",
         features: [
             "50 AI thumbnails/month",
             "Basic Templates",
-            "1Standard Resolution",
+            "Standard Resolution",
             "No Watermarks",
             "Email Support"
         ],
@@ -38,7 +50,7 @@ export const pricingData: IPricing[] = [
             "API Access",
             "Team Collaboration",
             "Custom Branding",
-            "Dedicated Accounst Manager"
+            "Dedicated Account Manager"
         ],
         mostPopular: false
     }

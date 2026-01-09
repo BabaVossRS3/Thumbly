@@ -2,6 +2,7 @@ export interface SectionTitleProps {
     text1: string;
     text2: string;
     text3: string;
+    color?: 'pink' | 'blue' | 'purple' | 'green' | 'orange' | 'cyan';
 }
 
 export interface TestimonialCardProps {
@@ -60,4 +61,18 @@ export interface SectionProps {
     description: string;
     buttonText: string;
     buttonHref: string;
+}
+
+export interface YouTubeProject {
+    _id: string;
+    projectName: string;
+    videoTitle: string;
+    videoDescription: string;
+    tags: string[];
+    category?: string;
+    thumbnailId?: string;
+    thumbnailUrl?: string;
+    youtubeVideoId?: string;
+    uploadedToYouTube: boolean;
+    createdAt: string;
 }

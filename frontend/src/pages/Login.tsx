@@ -26,15 +26,16 @@ const Login = () => {
     e.preventDefault();
     if(state === "login"){
       login(formData);
-    } else {
+    } else if(state === "signup"){
       signup(formData);
     }
-    navigate("/");
   };
 
   useEffect(() => {
-    if(user) navigate("/");
-  }, [user]);
+    if(user && user.email) {
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   return (
     <>
@@ -153,7 +154,7 @@ const Login = () => {
 
           <p
             onClick={() =>
-              setState((prev) => (prev === "login" ? "register" : "login"))
+              setState((prev) => (prev === "login" ? "signup" : "login"))
             }
             className="text-gray-400 text-sm mt-3 mb-11 cursor-pointer"
           >

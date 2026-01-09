@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
         } catch (error: any) {
             console.log(error);
-            toast.error(error.response?.data?.message || 'Signup failed');
+            toast.error(error.response?.data?.message || 'An error occurred during signup');
         }
     }
 
@@ -55,19 +55,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
         } catch (error: any) {
             console.log(error);
-            toast.error(error.response?.data?.message || 'Login failed');
+            toast.error(error.response?.data?.message || 'An error occurred during login');
         }
     }
 
     const logout = async () => {
          try {
-            const {data} = await api.post('/api/auth/logout');
+            await api.post('/api/auth/logout');
            setUser(null);
            setIsLoggedIn(false);
+           localStorage.clear();
            toast.success('Logged out successfully');
         } catch (error: any) {
             console.log(error);
-            toast.error(error.response?.data?.message || 'Logout failed');
+            setUser(null);
+            setIsLoggedIn(false);
+            localStorage.clear();
+            toast.error(error.response?.data?.message || 'An error occurred during logout');
         }
     }
 

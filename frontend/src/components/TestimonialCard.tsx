@@ -3,7 +3,7 @@ import type { TestimonialCardProps } from "../types";
 
 export default function TestimonialCard({ testimonial, index }: TestimonialCardProps) {
     return (
-        <motion.div className="p-4 rounded-lg mx-4 w-72 shrink-0 bg-pink-950/30 border border-pink-950"
+        <motion.div className="p-4 rounded-lg mx-4 w-72 shrink-0 border" style={{ backgroundColor: 'transparent' }}
             initial={{ y: 150, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             viewport={{ once: true }}
@@ -21,7 +21,7 @@ export default function TestimonialCard({ testimonial, index }: TestimonialCardP
                     <span className="text-xs text-slate-500">{testimonial.handle}</span>
                 </div>
             </div>
-            <p className="text-sm pt-4 text-slate-500 line-clamp-2">
+            <p className="text-sm pt-4 text-white line-clamp-2">
                 {testimonial.quote}
             </p>
         </motion.div>

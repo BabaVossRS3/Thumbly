@@ -1,14 +1,31 @@
 import { MenuIcon, XIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { button } from "motion/react-client";
+import api from "@/configs/api";
+import { planBanners } from "../assets/assets";
+import logo from "../assets/logo.png";
 
 export default function Navbar() {
   const { isLoggedIn, user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchSubscriptionPlan = async () => {
+      if (!isLoggedIn) return;
+      try {
+        const { data } = await api.get("/api/auth/verify");
+        setSubscriptionPlan(data.user?.subscriptionPlan || null);
+      } catch (error) {
+        console.log("Error fetching subscription plan:", error);
+      }
+    };
+
+    fetchSubscriptionPlan();
+  }, [isLoggedIn]);
 
   return (
     <>
@@ -20,14 +37,17 @@ export default function Navbar() {
         transition={{ type: "spring", stiffness: 250, damping: 70, mass: 1 }}
       >
         <Link to="/">
+        <div className="flex items-center">
           <img
-            className="h-8.5 w-auto"
-            src="/src/assets/logo.svg"
+            className="h-16 w-auto "
+            src={logo}
             alt="logo"
-            width={130}
-            height={34}
+            width={260}
+            height={68}
           />
-        </Link>
+          <h1 className="text-white text-2xl ">Thumbly</h1>
+          </div>
+          </Link>
 
         <div className="hidden md:flex items-center gap-8 transition duration-500">
           <Link to="/" className="hover:text-pink-300 transition">
@@ -37,36 +57,62 @@ export default function Navbar() {
             Generate
           </Link>
           {isLoggedIn ? (
-            <Link
-              to="/my-generation"
-              className="hover:text-pink-300 transition"
-            >
-              My Generations
-            </Link>
+            <>
+              <Link
+                to="/my-generation"
+                className="hover:text-pink-300 transition"
+              >
+                My Generations
+              </Link>
+              <Link
+                to="/youtube"
+                className="hover:text-pink-300 transition"
+              >
+                YouTube
+              </Link>
+            </>
           ) : null}
-          <Link to="/#" className="hover:text-pink-300 transition">
+          <Link to="/pricing" className="hover:text-pink-300 transition">
+            Pricing
+          </Link>
+          <Link to="/#contact" className="hover:text-pink-300 transition">
             Contact Us
           </Link>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {isLoggedIn ? (
-            <div className="relative group">
-              <button className="rounded-full size-8 bg-white/20 border-2 border-white/10">
-                {user?.name.charAt(0).toUpperCase()}
-              </button>
-              <div className="absolute hidden group-hover:block top-6 right-0 pt-4">
-                <button
-                  onClick={() => logout()}
-                  className="bg-white/20 border-2 border-white/10 px-5 py-1.5 rounded"
-                >
-                  Logout
-                </button>
+            <>
+              <div className="hidden md:flex items-center gap-2">
+                {subscriptionPlan && (
+                  <img 
+                    src={planBanners[subscriptionPlan.toLowerCase() as keyof typeof planBanners]} 
+                    alt={subscriptionPlan}
+                    className="h-8 w-auto"
+                    style={{ transform: 'scale(4.5)' }}
+                  />
+                )}
               </div>
-            </div>
+              <div className="relative group">
+                <button className="rounded-full size-8 bg-white/20 border-2 border-white/10">
+                  {user?.name.charAt(0).toUpperCase()}
+                </button>
+                <div className="absolute hidden group-hover:block top-6 right-0 pt-4">
+                  <button
+                    onClick={() => logout()}
+                    className="bg-white/20 border-2 border-white/10 px-5 py-1.5 rounded"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </>
           ) : (
             <button
               onClick={() => navigate("/login")}
-              className="hidden md:block px-6 py-2.5 bg-pink-600 hover:bg-pink-700 active:scale-95 transition-all rounded-full"
+              className="hidden md:block px-6 py-2.5 active:scale-95 transition-all rounded-full"
+              style={{backgroundColor: '#e947f6'}}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d926e8'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e947f6'}
             >
               Get Started
             </button>
@@ -78,7 +124,7 @@ export default function Navbar() {
       </motion.nav>
 
       <div
-        className={`fixed inset-0 z-100 bg-black/40 backdrop-blur flex flex-col items-center justify-center text-lg gap-8 md:hidden transition-transform duration-400 ${
+        className={`fixed inset-0 z-50 bg-black/40 backdrop-blur flex flex-col items-center justify-center text-lg gap-8 md:hidden transition-transform duration-400 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -89,11 +135,19 @@ export default function Navbar() {
           Generate
         </Link>
         {isLoggedIn ? (
-          <Link onClick={() => setIsOpen(false)} to="/my-generation">
-            My Generations
-          </Link>
+          <>
+            <Link onClick={() => setIsOpen(false)} to="/my-generation">
+              My Generations
+            </Link>
+            <Link onClick={() => setIsOpen(false)} to="/youtube">
+              YouTube
+            </Link>
+          </>
         ) : null}
-        <Link onClick={() => setIsOpen(false)} to="/#">
+        <Link onClick={() => setIsOpen(false)} to="/pricing">
+          Pricing
+        </Link>
+        <Link onClick={() => setIsOpen(false)} to="/#contact">
           Contact Us
         </Link>
         {isLoggedIn ? (

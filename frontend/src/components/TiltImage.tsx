@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { motion, useMotionValue, useSpring } from 'motion/react';
+import previewImage from '../assets/previewImage.png';
 
 const springValues = {
     damping: 30,
@@ -45,15 +46,15 @@ export default function TiltedImage({ rotateAmplitude = 3, }) {
     }
 
     return (
-        <motion.figure ref={ref} className="relative w-full h-full perspective-midrange mt-16 max-w-4xl mx-auto flex flex-col items-center justify-center" onMouseMove={handleMouse} onMouseLeave={handleMouseLeave}
+        <motion.figure ref={ref} className="relative w-full h-full perspective-midrange mt-16 max-w-7xl mx-auto flex flex-col items-center justify-center" onMouseMove={handleMouse} onMouseLeave={handleMouseLeave}
             initial={{ y: 150, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             viewport={{ once: true }}
             transition={{ type: "spring", stiffness: 320, damping: 70, mass: 1 }}
         >
-            <motion.div className="relative transform-3d w-full max-w-4xl" style={{ rotateX, rotateY }} >
-                <motion.img src="/src/assets/hero_img.png"
-                    className="borderb bg-linear-180 p-1 from-pink-500 to-transparent w-full rounded-[15px] will-change-transform transform-[translateZ(0)]"
+            <motion.div className="relative transform-3d w-full max-w-7xl" style={{ rotateX, rotateY }} >
+                <motion.img src={previewImage}
+                    className="border border-purple-500/50 p-1 w-full rounded-[15px] will-change-transform transform-[translateZ(0)]"
                     alt="hero section showcase"
                 />
             </motion.div>

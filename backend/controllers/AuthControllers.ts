@@ -1,13 +1,49 @@
 import { Request, Response } from "express";
 import User from "../models/User.js";
+import Subscription from "../models/Subscription.js";
 import bcrypt from "bcrypt";
+
+// Input validation helper
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const validatePassword = (password: string): boolean => {
+  return password && password.length >= 6;
+};
+
+const validateName = (name: string): boolean => {
+  return name && name.trim().length >= 2;
+};
 
 //controllers for user registration
 export const registerUser = async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
+
+    // Input validation
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Name, email, and password are required" });
+    }
+
+    if (!validateName(name)) {
+      return res.status(400).json({ message: "Name must be at least 2 characters long" });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({ message: "Please provide a valid email address" });
+    }
+
+    if (!validatePassword(password)) {
+      return res.status(400).json({ message: "Password must be at least 6 characters long" });
+    }
+
+    // Sanitize email
+    const sanitizedEmail = email.toLowerCase().trim();
+
     //find user by email
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: sanitizedEmail });
     if (user) {
       return res.status(400).json({ message: "User already exists" });
     }
@@ -17,11 +53,39 @@ export const registerUser = async (req: Request, res: Response) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: sanitizedEmail,
       password: hashedPassword,
     });
-    await newUser.save();
+
+    // Create free plan subscription for new user
+    const now = new Date();
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    
+    try {
+      await Subscription.create({
+        userId: newUser._id,
+        planType: "free",
+        stripeCustomerId: "free-plan",
+        stripeSubscriptionId: `free-${newUser._id}-${Date.now()}`,
+        stripeProductId: "free-plan",
+        stripePriceId: "free-plan",
+        status: "active",
+        currentPeriodStart: now,
+        currentPeriodEnd: thirtyDaysFromNow,
+        cancelAtPeriodEnd: false,
+        credits: {
+          used: 0,
+          limit: 3,
+        },
+        thumbnailLimit: 3,
+      });
+    } catch (subscriptionError: any) {
+      // If subscription creation fails, delete the user to maintain data consistency
+      console.error("Error creating subscription for new user:", subscriptionError);
+      await User.findByIdAndDelete(newUser._id);
+      return res.status(500).json({ message: "An error occurred during registration. Please try again." });
+    }
 
     //setting user data in session
     req.session.isLoggedIn = true;
@@ -33,7 +97,7 @@ export const registerUser = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.log(error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "An error occurred during registration" });
   }
 };
 
@@ -43,8 +107,24 @@ export const loginUser = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
+    // Input validation
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({ message: "Please provide a valid email address" });
+    }
+
+    if (!validatePassword(password)) {
+      return res.status(400).json({ message: "Password must be at least 6 characters long" });
+    }
+
+    // Sanitize email
+    const sanitizedEmail = email.toLowerCase().trim();
+
     //find user by email
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: sanitizedEmail });
 
     if (!user) {
       return res.status(400).json({ message: "Invalid email or password" });
@@ -67,7 +147,7 @@ export const loginUser = async (req: Request, res: Response) => {
       });
   } catch (error: any) {
     console.log(error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "An error occurred during login" });
   }
 };
 
@@ -77,7 +157,7 @@ export const logoutUser = async (req: Request, res: Response) => {
 
     req.session.destroy((error:any)=>{
         if(error){
-            return res.status(500).json({ message: error.message });
+            return res.status(500).json({ message: "An error occurred during logout" });
         }
     });
     return res.status(200).json({ message: "Logout successful" });
@@ -96,6 +176,6 @@ export const verifyUser = async (req: Request, res: Response) => {
         
     } catch (error:any) {
         console.log(error);
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: "An error occurred while verifying user" });
     }
 }

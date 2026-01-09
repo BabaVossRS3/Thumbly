@@ -3,6 +3,7 @@ import { DribbbleIcon, LinkedinIcon, TwitterIcon, YoutubeIcon } from "lucide-rea
 import { motion } from "motion/react";
 import type { IFooterLink } from "../types";
 import { Link } from "react-router-dom";
+import logo from "../assets/logo.png";
 
 export default function Footer() {
     return (
@@ -14,7 +15,10 @@ export default function Footer() {
                 transition={{ type: "spring", stiffness: 280, damping: 70, mass: 1 }}
             >
                 <Link to='/'>
-                    <img className="size-8 aspect-square" src="/src/assets/favicon.svg" alt="footer logo" width={32} height={32} />
+                <div className="flex flex-col items-center gap-2">
+                    <img className="h-24 w-auto aspect-square" src={logo} alt="footer logo" width={32} height={32} />
+                    <h1 className="text-white text-2xl ">Thumbly</h1>
+                </div>
                 </Link>
                 {footerData.map((section, index) => (
                     <div key={index}>
@@ -52,7 +56,7 @@ export default function Footer() {
                         <YoutubeIcon className="size-6 hover:text-pink-500" />
                     </a>
                 </div>
-                <p className="mt-3 text-center">&copy; {new Date().getFullYear()} <a href="https://prebuiltui.com?utm_source=pixels">Thumby - JrsDevelopment</a></p>
+                <p className="mt-3 text-center">&copy; {new Date().getFullYear()} <a href="https://prebuiltui.com?utm_source=pixels">Thumbly - JrsDevelopment</a></p>
             </motion.div>
         </footer>
     );

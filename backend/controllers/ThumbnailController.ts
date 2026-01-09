@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import Thumbnail from "../models/Thumbnail.js";
+import Subscription from "../models/Subscription.js";
+import { deductCredit } from "../utils/creditManagement.js";
 import {
   GenerateContentConfig,
   HarmBlockThreshold,
@@ -54,6 +56,30 @@ export const generateThumbnail = async (req: Request, res: Response) => {
       color_scheme,
       text_overlay,
     } = req.body;
+
+    // Validate user authentication
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    // Check if user has credits available (without deducting)
+    const subscription = await Subscription.findOne({ userId, status: "active" });
+    if (!subscription) {
+      return res.status(403).json({ 
+        message: "No active subscription found",
+        creditsUsed: 0,
+        creditsRemaining: 0,
+      });
+    }
+
+    const creditsRemaining = Math.max(0, subscription.credits.limit - subscription.credits.used);
+    if (creditsRemaining <= 0) {
+      return res.status(403).json({ 
+        message: "Credit limit reached",
+        creditsUsed: subscription.credits.used,
+        creditsRemaining: 0,
+      });
+    }
 
     const thumbnail = await Thumbnail.create({
       userId,
@@ -147,42 +173,79 @@ export const generateThumbnail = async (req: Request, res: Response) => {
     const filePath = path.join("images", filename);
 
     //create the images directory if it doesnt exist
-    fs.mkdirSync("images", { recursive: true });
+    try {
+      fs.mkdirSync("images", { recursive: true });
+    } catch (error) {
+      console.error("Error creating directory:", error);
+      await Thumbnail.findByIdAndDelete(thumbnail._id);
+      res.status(500).json({ message: "Error creating directory" });
+      return;
+    }
 
-    //save the image to the file system
-    fs.writeFileSync(filePath, finalBuffer!);
+    try {
+      //save the image to the file system
+      fs.writeFileSync(filePath, finalBuffer!);
+    } catch (error) {
+      console.error("Error writing file:", error);
+      await Thumbnail.findByIdAndDelete(thumbnail._id);
+      res.status(500).json({ message: "Error writing file" });
+      return;
+    }
 
-    const uploadResult = await cloudinary.uploader.upload(filePath, {
-      resource_type: "image",
-    });
+    try {
+      const uploadResult = await cloudinary.uploader.upload(filePath, {
+        resource_type: "image",
+      });
+      thumbnail.image_url = uploadResult.url;
+      thumbnail.isGenerating = false;
 
-    thumbnail.image_url = uploadResult.url;
-    thumbnail.isGenerating = false;
+      await thumbnail.save();
 
-    await thumbnail.save();
+      // Deduct credit ONLY after successful upload using atomic operation
+      const finalCreditResult = await deductCredit(userId);
+      if (!finalCreditResult.success) {
+        // If credit deduction fails after successful upload, log error but don't fail the request
+        // The thumbnail was successfully generated, so we keep it
+        console.error(`Critical: Failed to deduct credit for user ${userId} after successful generation: ${finalCreditResult.message}`);
+      }
 
-    res.json({ message: "Thumbnail generated successfully", thumbnail });
-
-    //remove image from disk
-    fs.unlinkSync(filePath);
+      res.json({ message: "Thumbnail generated successfully", thumbnail });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      await Thumbnail.findByIdAndDelete(thumbnail._id);
+      res.status(500).json({ message: "Error uploading file" });
+    } finally {
+      try {
+        //remove image from disk
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (error) {
+        console.error("Error deleting file:", error);
+      }
+    }
   } catch (error: any) {
     console.log(error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "An error occurred while generating thumbnail" });
   }
 };
 
 // delete thumbnail
 export const deleteThumbnail = async (req: Request, res: Response) => {
-    try {
-        const {id} = req.params;
-        const {userId} = req.session;
+  try {
+    const { id } = req.params;
+    const { userId } = req.session;
 
-        await Thumbnail.findOneAndDelete({ _id: id, userId });
+    const thumbnail = await Thumbnail.findOneAndDelete({ _id: id, userId });
 
-        res.json({ message: "Thumbnail deleted successfully" });
-        
-    } catch (error:any) {
-        console.log(error);
-        res.status(500).json({ message: error.message });
+    if (!thumbnail) {
+      res.status(404).json({ message: "Thumbnail not found" });
+      return;
     }
-}
+
+    res.json({ message: "Thumbnail deleted successfully" });
+  } catch (error: any) {
+    console.log(error);
+    res.status(500).json({ message: "An error occurred while deleting thumbnail" });
+  }
+};
